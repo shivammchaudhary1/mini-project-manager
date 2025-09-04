@@ -1,94 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchProjects,
+  createProject,
+  deleteProject,
+  sortProjects,
+} from "../redux/slices/projectSlice";
+import { logout } from "../redux/slices/authSlice";
 import CreateProjectModal from "../modals/CreateProjectModal.jsx";
-import config from "../../config/env.config.js";
-
-// Sample data for development - will be replaced with actual API call
-
-// const sampleData = {
-//   success: true,
-//   count: 3,
-//   projects: [
-//     {
-//       _id: "68b9429b6710bebab6df0e60",
-//       title: "My First Project",
-//       description: "Excited",
-//       user: "68b93ec0b5c8d3d2918ca421",
-//       createdAt: "2025-09-04T07:41:15.987Z",
-//       updatedAt: "2025-09-04T07:43:33.418Z",
-//     },
-//     {
-//       _id: "68b942bd6710bebab6df0e62",
-//       title: "Mini Project",
-//       description: "No Description",
-//       user: "68b93ec0b5c8d3d2918ca421",
-//       createdAt: "2025-09-04T07:41:49.511Z",
-//       updatedAt: "2025-09-04T07:41:49.511Z",
-//     },
-//     {
-//       _id: "68b942c36710bebab6df0e64",
-//       title: "Mini Project 333",
-//       description: "No Description",
-//       user: "68b93ec0b5c8d3d2918ca421",
-//       createdAt: "2025-09-04T07:41:55.421Z",
-//       updatedAt: "2025-09-04T07:41:55.421Z",
-//     },
-//   ],
-// };
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
+  const dispatch = useDispatch();
+  const { projects } = useSelector((state) => state.projects);
   const [sortOrder, setSortOrder] = useState("newest");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  //Get Data
+  // Get Data
   useEffect(() => {
-    async function fetchProjects() {
-      try {
-        // Get token from localStorage
-        const token = localStorage.getItem("token");
-
-        // Make authenticated GET request with Bearer token
-        const response = await fetch(`${config.backend}/api/projects/get`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        const data = await response.json();
-        console.log("Fetched projects:", data);
-        if (data.success) {
-          setProjects(data.projects);
-        } else {
-          console.error("Failed to fetch projects");
-        }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      }
-    }
-
-    fetchProjects();
-  }, []);
+    dispatch(fetchProjects());
+  }, [dispatch]);
 
   // Sort projects by date
   const handleSort = (order) => {
     setSortOrder(order);
-    let sortedProjects = [...projects];
-
-    if (order === "newest") {
-      sortedProjects.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-    } else {
-      sortedProjects.sort(
-        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-      );
-    }
-
-    setProjects(sortedProjects);
+    dispatch(sortProjects({ sortOrder: order }));
   };
 
   // Handle creating a new project
@@ -102,83 +39,26 @@ const Dashboard = () => {
   };
 
   // Handle project submission
-  const handleProjectSubmit = async (projectData) => {
-    try {
-      // Get token from localStorage
-      const token = localStorage.getItem("token");
-
-      // Send project data to API with authentication
-      const response = await fetch(`${config.backend}/api/projects/create`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(projectData),
-      });
-
-      const data = await response.json();
-      console.log("Project submission response:", data);
-
-      if (data.success) {
-        // Add the new project to the state
-        setProjects([data.project, ...projects]);
-        setIsModalOpen(false);
-      } else {
-        console.error("Failed to create project:", data.message);
-        // You could add error handling UI here
-      }
-    } catch (error) {
-      console.error("Error creating project:", error);
-      // You could add error handling UI here
-    }
+  const handleProjectSubmit = (projectData) => {
+    dispatch(createProject(projectData)).then(() => {
+      setIsModalOpen(false);
+    });
   };
 
   // Handle project deletion
-  const handleDeleteProject = async (projectId) => {
-    try {
-      // Confirm before deleting
-      const confirmDelete = window.confirm(
-        "Are you sure you want to delete this project?"
-      );
-      if (!confirmDelete) return;
+  const handleDeleteProject = (projectId) => {
+    // Confirm before deleting
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this project?"
+    );
+    if (!confirmDelete) return;
 
-      // Get token from localStorage
-      const token = localStorage.getItem("token");
-
-      // Delete project through API
-      const response = await fetch(
-        `${config.backend}/api/projects/delete/${projectId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
-      console.log("Project deletion response:", data);
-
-      if (data.success) {
-        // Remove project from state
-        setProjects(projects.filter((project) => project._id !== projectId));
-      } else {
-        console.error("Failed to delete project:", data.message);
-        // You could add error handling UI here
-      }
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      // You could add error handling UI here
-    }
+    dispatch(deleteProject(projectId));
   };
 
   // Handle logout
   const handleLogout = () => {
-    // Clear any stored tokens/user data
-    localStorage.removeItem("token");
-    // Navigate to login page
+    dispatch(logout());
     navigate("/login");
   };
 

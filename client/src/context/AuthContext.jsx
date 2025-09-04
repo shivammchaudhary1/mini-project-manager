@@ -1,39 +1,26 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useContext } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { loginUser, logout as logoutAction } from "../redux/slices/authSlice";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { user, isAuthenticated, loading } = useSelector((state) => state.auth);
 
-  // Check if user is already logged in from localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-
-    setLoading(false);
-  }, []);
-
-  // Login function
-  const login = (userData, token) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
-    setIsAuthenticated(true);
+  // Login function - now dispatches Redux action
+  const login = async (userData, token) => {
+    // If we already have the user and token (from direct API call),
+    // we can dispatch the fulfilled action manually
+    dispatch({
+      type: "auth/login/fulfilled",
+      payload: { user: userData, token },
+    });
   };
 
-  // Logout function
+  // Logout function - now dispatches Redux action
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    setIsAuthenticated(false);
+    dispatch(logoutAction());
   };
 
   const value = {

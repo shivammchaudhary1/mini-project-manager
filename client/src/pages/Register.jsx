@@ -1,13 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../redux/slices/authSlice";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import config from "../../config/env.config.js";
 import { useAuth } from "../context/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { login } = useAuth();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -15,29 +19,32 @@ const Register = () => {
   });
   const [error, setError] = useState("");
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch(`${config.backend}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const resultAction = await dispatch(registerUser(formData));
 
-      const data = await response.json();
+      if (registerUser.fulfilled.match(resultAction)) {
+        // The registration was successful
+        const { user, token } = resultAction.payload;
 
-      if (data.success) {
-        // Save token and user data in context and localStorage
-        login(data.user, data.token);
+        // Update the auth context for backward compatibility
+        login(user, token);
 
         // Redirect to dashboard
         navigate("/dashboard");
-      } else {
-        setError(data.message || "Registration failed");
+      } else if (registerUser.rejected.match(resultAction)) {
+        // Handle the error case
+        setError(resultAction.payload || "Registration failed");
       }
     } catch (error) {
       console.error("Registration error:", error);
