@@ -134,7 +134,8 @@ VITE_API_URL=http://localhost:8080/api
 
 ## 📊 Database Schema
 
-[Insert Database Schema Image Here]
+![schemaDesign](https://github.com/user-attachments/assets/e96f9f8b-c1a4-4023-bfb0-26763b6a65c6)
+
 
 ### Collections:
 
@@ -202,8 +203,14 @@ VITE_API_URL=http://localhost:8080/api
 
 ## 👨‍💻 Author
 
-- **Shivam Chaudhary**
+**Shivam Chaudhary**  
+- 🌐 [Portfolio](https://shivammchaudhary1.github.io/)  
+- 💼 [Resume](https://drive.google.com/file/d/1WKY2G5_26IxDw54AcklEqoCuNyJuBtx_/view?usp=drive_link)  
+- 🐙 [GitHub](https://github.com/shivammchaudhary1)   
 
-## 📄 License
+![Home Page](https://github.com/user-attachments/assets/9989c3a6-70e8-4b6e-bb60-e89c9393d0a1)
+![Register](https://github.com/user-attachments/assets/e9fd9bb0-c95b-4e09-b6b7-aa748d103cc8)
+![Login](https://github.com/user-attachments/assets/78ef96f4-ddd6-401b-ab67-af14646e91a6)
+![Dashboard](https://github.com/user-attachments/assets/e9d92fc2-5267-4fc8-972a-3a8e90af72d9)
+![tasklist](https://github.com/user-attachments/assets/b35f6461-a51b-4d9d-b5d7-66e2da80669f)
 
-This project is licensed under the ISC License.
