@@ -5,6 +5,7 @@ import Login from "../pages/Login.jsx";
 import Homepage from "../pages/Homepage.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
 import ProtectedRoute from "../components/ProtectedRoute.jsx";
+import Tasks from "../pages/Tasks.jsx";
 
 const AllRoutes = () => {
   return (
@@ -17,6 +18,15 @@ const AllRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/tasks/:projectId"
+        element={
+          <ProtectedRoute>
+            <Tasks />
           </ProtectedRoute>
         }
       />
