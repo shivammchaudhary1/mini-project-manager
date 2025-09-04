@@ -1,4 +1,4 @@
-import { verifyJWT, extractTokenFromHeader } from "../config/libraries/jwt.js";
+import { verifyToken, extractTokenFromHeader } from "../config/libraries/jwt.js";
 
 /**
  * Middleware to protect routes that require authentication
@@ -18,7 +18,7 @@ export const protect = async (req, res, next) => {
 
     try {
       // Verify token
-      const decoded = verifyJWT(token);
+      const decoded = verifyToken(token);
       req.user = decoded;
       next();
     } catch (error) {
