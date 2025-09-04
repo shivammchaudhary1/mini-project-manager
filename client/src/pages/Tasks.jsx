@@ -1,84 +1,51 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import config from "../../config/env.config.js";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchProjectById } from "../redux/slices/projectSlice";
+import {
+  fetchTasksByProject,
+  createTask,
+  updateTask,
+  updateTaskStatus,
+  deleteTask,
+  setStatusFilter as setTaskStatusFilter,
+  setSortOrder as setTaskSortOrder,
+} from "../redux/slices/taskSlice";
 import CreateTaskModal from "../modals/CreateTaskModal.jsx";
 import UpdateTaskModal from "../modals/UpdateTaskModal.jsx";
 
 const Tasks = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState([]);
-  const [project, setProject] = useState(null);
+  const dispatch = useDispatch();
+
+  const { currentProject: project } = useSelector((state) => state.projects);
+  const { tasks, loading, statusFilter, sortOrder } = useSelector(
+    (state) => state.tasks
+  );
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortOrder, setSortOrder] = useState("asc");
-  const [statusFilter, setStatusFilter] = useState("all");
 
   // Fetch project details and tasks
   useEffect(() => {
-    const fetchProjectAndTasks = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
-        // Fetch project details
-        const projectResponse = await fetch(
-          `${config.backend}/api/projects/get/${projectId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+    // Fetch project and tasks data from Redux
+    dispatch(fetchProjectById(projectId)).catch((err) => {
+      setError(err.message || "Failed to fetch project");
+    });
 
-        const projectData = await projectResponse.json();
-
-        if (!projectResponse.ok) {
-          throw new Error(projectData.message || "Failed to fetch project");
-        }
-
-        if (projectData.success) {
-          setProject(projectData.project);
-        }
-
-        // Fetch tasks for this project
-        const tasksResponse = await fetch(
-          `${config.backend}/api/tasks/project/${projectId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const tasksData = await tasksResponse.json();
-
-        if (!tasksResponse.ok) {
-          throw new Error(tasksData.message || "Failed to fetch tasks");
-        }
-
-        if (tasksData.success) {
-          setTasks(tasksData.tasks);
-        }
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error:", error);
-        setError(error.message);
-        setLoading(false);
-      }
-    };
-
-    fetchProjectAndTasks();
-  }, [projectId, navigate]);
+    dispatch(fetchTasksByProject(projectId)).catch((err) => {
+      setError(err.message || "Failed to fetch tasks");
+    });
+  }, [projectId, navigate, dispatch]);
 
   // Create a new task
   const handleCreateTask = () => {
@@ -103,155 +70,64 @@ const Tasks = () => {
   };
 
   // Submit new task
-  const handleTaskSubmit = async (taskData) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${config.backend}/api/tasks/create`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(taskData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Add the new task to state
-        setTasks([data.task, ...tasks]);
-        setIsCreateModalOpen(false);
-      } else {
-        console.error("Failed to create task:", data.message);
-      }
-    } catch (error) {
-      console.error("Error creating task:", error);
-    }
+  const handleTaskSubmit = (taskData) => {
+    dispatch(createTask(taskData)).then(() => {
+      setIsCreateModalOpen(false);
+    });
   };
 
   // Submit task update
-  const handleTaskUpdate = async (taskData) => {
-    try {
-      if (!selectedTask) return;
+  const handleTaskUpdate = (taskData) => {
+    if (!selectedTask) return;
 
-      const token = localStorage.getItem("token");
+    const updateData = {
+      taskId: selectedTask._id,
+      taskData: {
+        ...taskData,
+        projectId: projectId,
+      },
+    };
 
-      const response = await fetch(
-        `${config.backend}/api/tasks/update/${selectedTask._id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...taskData,
-            projectId: projectId,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Update the task in state
-        const updatedTasks = tasks.map((task) =>
-          task._id === selectedTask._id ? data.task : task
-        );
-        setTasks(updatedTasks);
-        setIsUpdateModalOpen(false);
-        setSelectedTask(null);
-      } else {
-        console.error("Failed to update task:", data.message);
-      }
-    } catch (error) {
-      console.error("Error updating task:", error);
-    }
+    dispatch(updateTask(updateData)).then(() => {
+      setIsUpdateModalOpen(false);
+      setSelectedTask(null);
+    });
   };
 
   // Toggle task status
-  const handleToggleStatus = async (task) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      // Determine next status
-      let newStatus;
-      switch (task.status) {
-        case "todo":
-          newStatus = "in-progress";
-          break;
-        case "in-progress":
-          newStatus = "done";
-          break;
-        case "done":
-          newStatus = "todo";
-          break;
-        default:
-          newStatus = "todo";
-      }
-
-      // Update task status via API
-      const response = await fetch(
-        `${config.backend}/api/tasks/update-status/${task._id}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Update the task in state
-        const updatedTasks = tasks.map((t) =>
-          t._id === task._id ? { ...t, status: newStatus } : t
-        );
-        setTasks(updatedTasks);
-      } else {
-        console.error("Failed to update task status:", data.message);
-      }
-    } catch (error) {
-      console.error("Error updating task status:", error);
+  const handleToggleStatus = (task) => {
+    // Determine next status
+    let newStatus;
+    switch (task.status) {
+      case "todo":
+        newStatus = "in-progress";
+        break;
+      case "in-progress":
+        newStatus = "done";
+        break;
+      case "done":
+        newStatus = "todo";
+        break;
+      default:
+        newStatus = "todo";
     }
+
+    dispatch(
+      updateTaskStatus({
+        taskId: task._id,
+        status: newStatus,
+      })
+    );
   };
 
   // Delete a task
-  const handleDeleteTask = async (taskId) => {
-    try {
-      const confirmDelete = window.confirm(
-        "Are you sure you want to delete this task?"
-      );
-      if (!confirmDelete) return;
+  const handleDeleteTask = (taskId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this task?"
+    );
+    if (!confirmDelete) return;
 
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `${config.backend}/api/tasks/delete/${taskId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Remove task from state
-        setTasks(tasks.filter((task) => task._id !== taskId));
-      } else {
-        console.error("Failed to delete task:", data.message);
-      }
-    } catch (error) {
-      console.error("Error deleting task:", error);
-    }
+    dispatch(deleteTask(taskId));
   };
 
   // Return to dashboard
@@ -313,12 +189,12 @@ const Tasks = () => {
   // Sort tasks by due date
   const handleSortByDueDate = () => {
     const newSortOrder = sortOrder === "asc" ? "desc" : "asc";
-    setSortOrder(newSortOrder);
+    dispatch(setTaskSortOrder(newSortOrder));
   };
 
   // Filter tasks by status
   const handleFilterByStatus = (e) => {
-    setStatusFilter(e.target.value);
+    dispatch(setTaskStatusFilter(e.target.value));
   };
 
   // Get filtered and sorted tasks

@@ -1,42 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../redux/slices/authSlice";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import config from "../../config/env.config.js";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { login } = useAuth();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch(`${config.backend}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const resultAction = await dispatch(loginUser(formData));
 
-      const data = await response.json();
+      if (loginUser.fulfilled.match(resultAction)) {
+        // The login was successful, let's get the data
+        const { user, token } = resultAction.payload;
 
-      if (data.success) {
-        // Save token and user data in context and localStorage
-        login(data.user, data.token);
+        // Update the auth context for backward compatibility
+        login(user, token);
 
         // Redirect to dashboard
         navigate("/dashboard");
-      } else {
-        setError(data.message || "Login failed");
+      } else if (loginUser.rejected.match(resultAction)) {
+        // Handle the error case
+        setError(resultAction.payload || "Login failed");
       }
     } catch (error) {
       console.error("Login error:", error);
