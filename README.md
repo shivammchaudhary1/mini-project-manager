@@ -22,8 +22,8 @@ A full-stack web application for efficient project and task management. This app
 
 ### Deployment
 
-- Frontend: [Deployed on Vercel](#)
-- Backend: [Deployed on Railway/Render](#)
+- Frontend: [Deployed on Vercel](https://mini-project-manager-alpha.vercel.app)
+- Backend: [Deployed on Render](https://mini-project-manager-xktk.onrender.com)
 - Database: MongoDB Atlas
 
 ## ✨ Features
